@@ -24,7 +24,14 @@ public class CommonResult<T> {
 
         return new CommonResult<T>(200,"请求成功",m);
     }
+    public static <T> CommonResult<T> succes(String msg,T m){
 
+        return new CommonResult<T>(200,msg,m);
+    }
+    public static <T> CommonResult<T> succes(String msg){
+
+        return new CommonResult<T>(200,msg,null);
+    }
     public static <T> CommonResult<T> succes(){
 
         return new CommonResult<T>(200,"请求成功",null);
@@ -33,6 +40,11 @@ public class CommonResult<T> {
     public static <T> CommonResult<T> fail(){
 
         return new CommonResult<T>(200,"请求成功",null);
+    }
+
+    public static <T> CommonResult<T> fail(String msg){
+
+        return new CommonResult<T>(500,msg,null);
     }
 
 

@@ -2,13 +2,13 @@ package com.clay.springcloud;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @SpringBootApplication
-@EnableEurekaClient
-public class OrderMain {
+@EnableDiscoveryClient //使用zookeeper作为注册中心
+public class OrderzkMain {
 
     public static void main(String[] args) {
-        SpringApplication.run(OrderMain.class, args);
+        SpringApplication.run(OrderzkMain.class, args);
     }
 }

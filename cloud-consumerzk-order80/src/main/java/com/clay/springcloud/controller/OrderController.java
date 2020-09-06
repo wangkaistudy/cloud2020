@@ -16,17 +16,14 @@ public class OrderController {
     @Autowired
     private RestTemplate restTemplate;
 
-    public static final String PAYMENT_ULR = "http://CLOUD-PROVIDER-PAYMENT";
+    public static final String PAYMENT_ULR = "http://cloud-provider-payment";
 
 
-    @PostMapping("/consumer/payment/create")
-    public CommonResult creawte(Payment payment) {
-        return restTemplate.postForObject(PAYMENT_ULR + "/payment/create", payment, CommonResult.class);
+    @GetMapping("/consumer/payment/zk")
+    public CommonResult payment (){
+        CommonResult result = restTemplate.postForObject(PAYMENT_ULR+"/payment/zk",null,CommonResult.class);
+        return result;
     }
-    @GetMapping("/consumer/payment/get/{id}")
-    public CommonResult<Payment> create(@PathVariable("id") Integer id){
-        return restTemplate.getForObject(PAYMENT_ULR + "/payment/get/" + id, CommonResult.class);
 
-    }
 
 }
