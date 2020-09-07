@@ -9,14 +9,14 @@ eureka:
     fetch-registry: false
     service-url:
 #      单机版本
-      defaultZone: http://eureka7001.com:7001/eureka/
+#      defaultZone: http://eureka7001.com:7001/eureka/
+      #      集群版
+      defaultZone: http://eureka7002.com:7002/eureka/
+#  server:
+#      enable-self-preservation: false
+#      eviction-interval-timer-in-ms: 2000
 
-  server:
-      enable-self-preservation: false
-      eviction-interval-timer-in-ms: 2000
 
-#      集群版
-#      defaultZone: http://eureka7002.com:7002/eureka/
 
 
 # ostname: localhost  #eureka服务端的实例名字

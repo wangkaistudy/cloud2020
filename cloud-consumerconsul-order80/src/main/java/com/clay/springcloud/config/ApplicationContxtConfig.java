@@ -11,7 +11,7 @@ public class ApplicationContxtConfig {
 
 
     @Bean
-    //@LoadBalanced
+    @LoadBalanced
     public RestTemplate getRestTemplate(){
 
         return new RestTemplate();

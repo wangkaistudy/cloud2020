@@ -52,12 +52,15 @@ public class PaymentController {
 
 
     @GetMapping("/payment/get/{id}")
-    public CommonResult<Payment> create(@PathVariable("id") Integer id){
+    public CommonResult<Payment> getPaymentById(@PathVariable("id") Integer id){
         Payment payment = paymentService.getById(id);
 
             return CommonResult.succes("端口:"+serverPort,payment);
     }
-
+    @GetMapping(value = "/payment/lb")
+    public String getPaymentLB(){
+        return serverPort;
+    }
 
 
 }

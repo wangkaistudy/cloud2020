@@ -35,6 +35,9 @@ public class PaymentController {
 
         return CommonResult.succes("端口:"+serverPort,payment);
     }
-
+    @GetMapping(value = "/payment/lb")
+    public String getPaymentLB(){
+        return serverPort;
+    }
 
 }
