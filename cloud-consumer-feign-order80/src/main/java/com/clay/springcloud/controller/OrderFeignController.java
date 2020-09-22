@@ -13,11 +13,16 @@ import javax.annotation.Resource;
 public class OrderFeignController {
 
 
-        @Resource
-        private PaymentFeignService paymentFeignService;
+    @Resource
+    private PaymentFeignService paymentFeignService;
 
-        @GetMapping(value = "/consumer/payment/get/{id}")
-        public CommonResult<Payment> getPaymentById(@PathVariable("id") Integer id){
-            return paymentFeignService.getPaymentById(id);
-        }
+    @GetMapping(value = "/consumer/payment/get/{id}")
+    public CommonResult<Payment> getPaymentById(@PathVariable("id") Integer id) {
+        return paymentFeignService.getPaymentById(id);
     }
+
+    @GetMapping(value = "/consumer/payment/feing/timeout")
+    public String paymentTimeOut() {
+        return paymentFeignService.timeOut();
+    }
+}
