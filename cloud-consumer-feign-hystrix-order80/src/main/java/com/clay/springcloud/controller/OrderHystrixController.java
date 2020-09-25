@@ -24,7 +24,7 @@ public class OrderHystrixController {
         String result = paymentHystrixService.paymentInfo_OK(id);
         return result;
     }
-    @GetMapping("/consumer/payment/hystrix/timeout/{id}")
+
     //@HystrixCommand(fallbackMethod ="paymentInfo_TimeOutFallbackMethod",commandProperties = {
     //        @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds",value = "2000")
     //}) 这种方法去实现每个方法都需要配置
