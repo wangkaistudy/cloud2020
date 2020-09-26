@@ -133,3 +133,9 @@ ribbon:
 3. 到达以上阀值，断路器将会开启
 4. 当开启的时候，所有请求都不会进行转发
 5. 一段时间之后（默认是5秒），这个时候断路器是半开状态，会让其中一个请求进行转发。如果成功，断路器会关闭，若失败，继续开启。重复4和5
+#### 所有参数配置
+![](doc/image/Hystrix.bmp)
+### hystrix工作流程
+![](doc/image/hystrix-command-flow-chart.png)
+步骤说明
+![](doc/image/hystrixsetp.bmp)
