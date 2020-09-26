@@ -139,3 +139,87 @@ ribbon:
 ![](doc/image/hystrix-command-flow-chart.png)
 步骤说明
 ![](doc/image/hystrixsetp.bmp)
+
+### 服务监控HystixDashboard
+#### 使用前提 
+1. 新建HystixDashboard服务
+2. 被监控的服务需要引入 mavn依赖
+       ```
+        <dependency>
+                   <groupId>org.springframework.boot</groupId>
+                   <artifactId>spring-boot-starter-web</artifactId>
+               </dependency>
+               <dependency>
+                   <groupId>org.springframework.boot</groupId>
+                   <artifactId>spring-boot-starter-actuator</artifactId>
+               </dependency> 
+       ```
+3. 在被监控的服务添加配置（新版本）
+ ```
+
+    /**
+     * 此配置为了服务监控而配置，与服务容错本身无关，springcloud升级后需要配置
+     * servletRegistrationBean因为springboot默认的路径不是"/hystrix.stream"
+     * 因此需要在自己的项目配置下面的servlet
+     */
+    @Bean
+    public ServletRegistrationBean getServlet(){
+        HystrixMetricsStreamServlet streamServlet = new HystrixMetricsStreamServlet();
+        ServletRegistrationBean registrationBean = new ServletRegistrationBean(streamServlet);
+        registrationBean.setLoadOnStartup(1);
+        registrationBean.addUrlMappings("/hystrix.stream");
+        registrationBean.setName("HystrixMetricsStreamServlet");
+        return registrationBean;
+    }
+```
+#### 示例
+![](doc/image/usehsytrix.png)
+#### 说明
+![](doc/image/show.jpg)
+![](doc/image/show2.png)
+
+
+### Gateway新一代网关
+![](doc/image/gateway.png)
+
+#### 使用技术
+![](doc/image/gatewayintroduce.png)
+ 
+#### 网关的作用
+1. 反向代理
+2. 鉴权
+3. 流量控制
+4. 熔断
+5. 日志监控
+#### 微服务网关
+![](doc/image/mircostgateway.png)
+
+#### springcloud gateway特点
+![](doc/image/gatewayspecial.png)
+#### springcloud gateway工作流程
+![](doc/image/gayewayflow-chart.png)
+
+#### gateway网关路由配置方式
+1. 代码文件yml配置
+```spring:
+     application:
+       name: cloud-gateway
+     cloud:
+       gateway:
+         routes:
+         - id: payment_routh #路由的ID，没有固定规则但要求唯一，建议配合服务名
+           uri: http://localhost:8001   #匹配后提供服务的路由地址
+           predicates:
+             - Path=/payment/get/**   #断言,路径相匹配的进行路由
+   
+         - id: payment_routh2
+           uri: http://localhost:8001
+           predicates:
+             - Path=/payment/lb/**   #断言,路径相匹配的进行路由
+   
+```
+2. 代码中注入RouteLocator的Bean
+
+
+
+
