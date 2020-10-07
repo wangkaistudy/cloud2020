@@ -220,6 +220,333 @@ ribbon:
 ```
 2. 代码中注入RouteLocator的Bean
 
+3. 常用的Route Predicate
+    1.  After Route Predicate
+    - After=2020-03-08T10:59:34.102+08:00[Asia/Shanghai]
+    2. Before Route Predicate
+      - After=2020-03-08T10:59:34.102+08:00[Asia/Shanghai]
+       - Before=2020-03-08T10:59:34.102+08:00[Asia/Shanghai]
+   3. Between Route Predicate
+    - Between=2020-03-08T10:59:34.102+08:00[Asia/Shanghai] ,  2020-03-08T10:59:34.102+08:00[Asia/Shanghai]
+    4. Cookie Route Predicate
+      - Cookie=username,atguigu    #并且Cookie是username=zhangshuai才能访问
+    5. Header Route Predicate
+        - Header=X-Request-Id, \d+   #请求头中要有X-Request-Id属性并且值为整数的正则表达式
+    6. Host Route Predicate
+        - Host=**.atguigu.com
+    7. Method Route Predicate
+        - Method=GET
+    8. Path Route Predicate
+        - Path=/payment/get/**
+    9. Query Route Predicate
+        - Query=username, \d+ #要有参数名称并且是正整数才能路由
+        ```
+       server:
+         port: 9527
+       spring:
+         application:
+           name: cloud-gateway
+         cloud:
+           gateway:
+             discovery:
+               locator:
+                 enabled: true  #开启从注册中心动态创建路由的功能，利用微服务名进行路由
+             routes:
+               - id: payment_routh #路由的ID，没有固定规则但要求唯一，建议配合服务名
+                 #uri: http://localhost:8001   #匹配后提供服务的路由地址
+                 uri: lb://cloud-payment-service
+                 predicates:
+                   - Path=/payment/get/**   #断言,路径相匹配的进行路由
+        
+               - id: payment_routh2
+                 #uri: http://localhost:8001   #匹配后提供服务的路由地址
+                 uri: lb://cloud-payment-service
+                 predicates:
+                   - Path=/payment/lb/**   #断言,路径相匹配的进行路由
+                   #- After=2020-03-08T10:59:34.102+08:00[Asia/Shanghai]
+                   #- Cookie=username,zhangshuai #并且Cookie是username=zhangshuai才能访问
+                   #- Header=X-Request-Id, \d+ #请求头中要有X-Request-Id属性并且值为整数的正则表达式
+                   #- Host=**.atguigu.com
+                   #- Method=GET
+                   #- Query=username, \d+ #要有参数名称并且是正整数才能路由
+        
+        
+       eureka:
+         instance:
+           hostname: cloud-gateway-service
+         client:
+           service-url:
+             register-with-eureka: true
+             fetch-registry: true
+             defaultZone: http://eureka7001.com:7001/eureka
+
+       ```
+#### Filter的使用
+ 生命周期只有pre post 业务逻辑之前，业务逻辑之后 
+ 
+ 两种filter
+ 单一：GatewayFilter 有31种
+ 全局：GlobalFilter 
+ ##### 自定义过滤器
+    自定义全局GlobalFilter
+    实现两个 impiemerts   GlobalFilter ，Ordered
+    进行 全局日志记录 统一网关鉴权
+
+### config配置中心
+1. 引入依赖
+``` <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-config-server</artifactId>
+           </dependency>
+```
+2. 增加配置
+```yaml
+spring:
+  application:
+    name: cloud-config-center
+  cloud:
+    config:
+      server:
+        git:
+          uri: git@github.com:wangkaistudy/sprincloud-config.git # github地址
+          #搜索目录
+          search-paths:
+            - springclo|ud-config
+#      读取分支
+      label: master
+```
+4. 配置读取规则
+```
+/{label}/{application}-{profile}.yml（最推荐使用这种方式）
+master分支
+http://127.0.0.1:3344/master/config-dev.yml
+http://127.0.0.1:3344/master/config-test.yml
+http://127.0.0.1:3344/master/config-prod.yml
+dev分支
+http://127.0.0.1:3344/dev/config-dev.yml
+http://127.0.0.1:3344/dev/config-test.yml
+http://127.0.0.1:3344/dev/config-prod.yml
+/{application}-{profile}.yml
+http://127.0.0.1:3344/config-dev.yml
+http://127.0.0.1:3344/config-test.yml
+http://127.0.0.1:3344/config-prod.yml
+http://127.0.0.1:3344/config-xxxx.yml(不存在的配置)
+/{application}-{profile}[/{label}]
+http://127.0.0.1:3344/config/dev/master
+http://127.0.0.1:3344/config/test/master
+http://127.0.0.1:3344/config/prod/master
+
+```
+label：分支（branch）
+name:服务名
+profiles:环境（dev/test/prod）
+#### bootstap.yml
+![](doc/image/bootstrap.yml.png)
+
+#### 客户端配置
+参考 cloud-config-client-3355服务
+
+#### 动态刷新
+##### 手动刷新
+1. 增加bootstrap.yml配置
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+```
+2. 在相关业务类增加 @RefreshScope//配置刷新
+3. post请求访问curl -X POST "http://localhost:3355/actuator/refresh
+4. 相关配置即可以自动刷新
+
+## 自动刷新SpringCloud Bus 消息总线
+> 分布式自动刷新配置功能
+>Spring Cloud Bus配合Spring Cloud Config使用可以实现配置的动态刷新
+![](doc/image/coud-bus.png)
+作用
+![](doc/image/springcloudbus.png)
+### 什么是总线 
+![](doc/image/buszongxian.png)
+
+### 14.3.3 设计思想
+1. 利用消息总线触发一个客户端/bus/refresh,而刷新所有客户端的配置
+![](doc/image/design1.png)
+2. 利用消息总线触发一个服务端ConfigServer的/bus/refresh端点,而刷新所有客户端的配置()
+![](doc/image/design2.png)
+
+图二的架构显然更加合适，图一不适合的原因如下
+打破了微服务的职责单一性，因为微服务本身是业务模块，它本不应该承担配置刷新职责
+破坏了微服务各节点的对等性
+有一定的局限性。例如，微服务在迁移时，它的网络地址常常会发生变化，此时如果想要做到自动刷新，那就会增加更多的修改
+
+#### 应用
+1. cloud-config-center-3344配置中心服务端添加消息总线支持POM
+        ```xml
+    <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-bus-amqp</artifactId>
+    </dependency>
+    ```
+    修改yml
+    rabbitmq:
+        host: localhost
+        port: 5672
+        username: guest
+        password: guest
+   management:
+     endpoints:
+       web:
+         exposure:
+           include: 'bus-refresh'
 
 
+2. 给cloud-config-center-3355客户端添加消息总线支持   POM
+     ```xml
+    <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-bus-amqp</artifactId>
+    </dependency>
+    ```
+    修改yml
+    rabbitmq:
+        host: localhost
+        port: 5672
+        username: guest
+        password: guest
+3. 给cloud-config-center-3366客户端添加消息总线支持   POM
+     ```xml
+    <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-bus-amqp</artifactId>
+    </dependency>
+    ```
+    修改yml
+    rabbitmq:
+        host: localhost
+        port: 5672
+        username: guest
+        password: guest
+#### 配置更新（全局）
+ 1. 使用post请求访问配置中心 curl -X POST "http://localhost:3344/actuator/bus-refresh"
+ 2. 各个配置中心客户端参数配置
+ 
+#### 配置更新（指定）
+> http://localhost:配置中心的端口号/actuator/bus-refresh/{destination}
+  /bus/refresh请求不再发送到具体的服务实例上，而是发给config server并通过destination参数类指定需要更新配置的服务或实例
 
+如在本项目中只通知3366客户端
+POST http://localhost:3344/actuator/bus-refresh/cloud-config-client:3366
+#### bus流程
+![](doc/image/cloud-bus-notice.png)
+
+### cloud Stream
+什么是消息驱动
+![](doc/image/cloudStream.png)
+屏蔽底层消息中间件的差异，降低切换版本，统一消息的编程模型
+
+为什么用cloud Stream
+![](doc/image/图片7.png)
+![](doc/image/图片8.png)
+![](doc/image/图片9.png)
+
+底层原理
+![](doc/image/图片2.png)
+![](doc/image/图片3.png)
+
+Binder
+![](doc/image/图片4.png)
+![](doc/image/图片5.png)
+通过自定义Binder作为中间层，实现了应用程序与消息中间件细节之间的隔离
+
+INPUT：对应消费者
+OUTPUT：对应生产者
+Stream中的消息通信方式遵循了发布-订阅模式
+
+##### Topic主题进行广播
+在RabbitMQ就是Exchange
+在kafka中就是Topic
+
+####  Spring Cloud Stream标准流程套路
+![](doc/image/图片10.png)
+![](doc/image/图片11.png)
+
+##### Binder
+很方便的连接中间件，屏蔽差异
+##### Channel
+通道，是队列Queue的一种抽象，在消息通讯系统中就是实现存储和转发的媒介，通过对Channel对队列进行配置
+##### Source和Sink
+简单的可理解为参照对象是Spring Cloud Stream自身，从Stream发布消息就是输出，接受消息就是输入
+####  编码API和常用注解
+![](doc/image/图片13.png)
+
+#### 示例
+具体看 cloud-stream-rabbitmq-consumer8803 cloud-stream-rabbitmq-consumer8802 cloud-stream-rabbitmq-provider8801
+
+#### 分组
+原理： 微服务应用放置于同一个group中，就能够保证消息只会被其中一个应用消费一次。不同的组是可以消费的，同一个组内会发生竞争关系，只有其中一个可以消费。
+8802/8803都变成不同组，group两个不同
+1. 8802修改YML
+    group:  claywangA
+ 
+2. 8803修改YML
+   group: claywangB
+   
+3. 访问RabbitMQ   
+![](doc/image/1602061224(1).jpg)
+
+分别创建两个不同的queue 绑定交换机 如果group相同则消费同一个queue（rabbitmq 如果使用kafka则利用kafka的group属性）
+
+#### 持久化
+group属性能保证消息不丢失，当有group属性时 如在接受消息时down机重启后还能消费down机期间的消息
+如若没有group属性则不能消费到down机期间消息
+
+### [SpringCloud Sleuth](https://github.com/spring-cloud/spring-cloud-sleuth)
+产生条件
+![](doc/image/图片14.png)
+https://github.com/spring-cloud/spring-cloud-sleuth
+Spring Cloud Sleuth提供了一套完整的服务跟踪的解决方案
+在分布式系统中提供追踪解决方案并且兼容支持了zipkin
+![](doc/image/图片15.png)
+sleuth负责收集整理zipkin负责展现
+
+### zipkin搭建
+1. 下载[zipkin server](https://dl.bintray.com/openzipkin/maven/io/zipkin/java/zipkin-server/)
+2. 启动java -jar zipkin-server-2.12.9-exec.jar
+3. 访问控制台http://localhost:9411/zipkin/
+
+#### 调用链路
+![](doc/image/图片16.png)
+精简后
+![](doc/image/图片17.png)
+
+Trace:类似于树结构的Span集合，表示一条调用链路，存在唯一标识
+span:表示调用链路来源，通俗的理解span就是一次请求信息
+
+#### 使用
+1. 在相应服务上添加依赖 如cloud-provider-payment8001、cloud-consumer-order80
+    ```xml
+   <!--包含了sleuth+zipkin-->
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-starter-zipkin</artifactId>
+           </dependency>
+
+    ```
+2. 修改配置文件
+    ```yaml
+    spring:
+      application:
+        name: cloud-provider-payment
+      zipkin:
+        base-url: http://localhost:9411 #9411为zipkin本地服务端
+      sleuth:
+        sampler:
+        #采样率值介于 0 到 1 之间，1 则表示全部采集 一般使用0.5
+        probability: 1
+    ```
+3. 打开浏览器访问:http:localhost:9411
+![](doc/image/图片18.png)
+![](doc/image/图片19.png)
+
+## SpringCloud Alibaba 
