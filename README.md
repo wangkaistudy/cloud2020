@@ -550,3 +550,237 @@ span:表示调用链路来源，通俗的理解span就是一次请求信息
 ![](doc/image/图片19.png)
 
 ## SpringCloud Alibaba 
+###  Nacos
+>Nacos 前四个字母分别为Naming和Configuration的前两个字母，最后的s为Service
+ Nacos就是注册中心+配置中心的组合 等价于 Eureka+Config+Bus
+
+作用：
+    替代Eureka做服务注册中心
+    替代Config做服务配置中心
+[下载](https://github.com/alibaba/Nacos)
+#### Nacos 作为注册中心
+1. 引入pom
+    ```xml
+   <!--spring cloud alibaba 2.1.0.RELEASE-->
+   <dependency>
+     <groupId>com.alibaba.cloud</groupId>
+     <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+     <version>2.1.0.RELEASE</version>
+     <type>pom</type>
+     <scope>import</scope>
+   </dependency>
+    <!--SpringCloud ailibaba nacos -->
+    <dependency>
+        <groupId>com.alibaba.cloud</groupId>
+        <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+    </dependency>
+
+    ```
+2. 修改yml
+    ```yaml
+    server:
+      port: 9001
+    
+    spring:
+      application:
+        name: nacos-payment-provider
+      cloud:
+        nacos:
+          discovery:
+            server-addr: localhost:8848 #配置Nacos地址
+    
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: '*'
+   
+    ```
+
+ 3. nacos默认支持负载均衡因为nacos默认依赖了ribbon
+ 4. 具体示例见cloudalibaba-consumer-nacos-order83、cloudalibaba-provider-payment9001、cloudalibaba-provider-payment9002
+ 5. nacos和cap
+ ![](doc/image/图片20.png)
+ ![](doc/image/图片21.png)
+ 6. 切换 Nacos支持AP和CP模式的切换
+ ![](doc/image/图片22.png)
+       curl -X PUT '$NACOS_SERVER:8848/nacos/v1/ns/operator/switches?entry=serverMode&value=CP'
+ 
+ #### Nacos 作为配置中心
+ 
+1. 引入pom依赖
+     ```xml
+       <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+            </dependency>
+    ```
+2.配置bootstrap.yml
+    ```yaml
+    server:
+      port: 3377
+    spring:
+      application:
+        name: nacos-config-client
+      cloud:
+        nacos:
+          discovery:
+            server-addr: 127.0.0.1:8848
+          config:
+            server-addr: 127.0.0.1:8848
+            file-extension: yaml
+    #        group: TEST_GROUP
+    #        namespace: 4ccc4c4c-51ec-4bd1-8280-9e70942c0d0c
+    
+    #  ${spring.application.name}-${spring.profile.active}.${spring.cloud.nacos.config.file-extension}
+    #${prefix}-${spring.profiles.active}.${file-extension}
+    #prefix 默认为 spring.application.name 的值，也可以通过配置项 spring.cloud.nacos.config.prefix来配置。
+    #spring.profiles.active 即为当前环境对应的 profile，详情可以参考 Spring Boot文档。 注意：当 spring.profiles.active 为空时，对应的连接符 - 也将不存在，dataId 的拼接格式变成 ${prefix}.${file-extension}
+    #file-exetension 为配置内容的数据格式，可以通过配置项 spring.cloud.nacos.config.file-extension 来配置。目前只支持 properties 和 yaml 类型。
+    #${spring.application.name}-${spring.profiles.active}.${file-extension}
+    #dataId即为 nacos-config-client-dev.yaml
+    
+    # 踩坑注意 nacos服务端版本必须匹配 （服务端此处采用NACOS1.2.1）
+    ```
+3. 配置application.yml
+    nacos同springcloud-config一样，在项目初始化时，要保证先从配置中心进行配置拉去，拉取配置之后，才能保证项目的正常启动，springboot中配置文件的加载是存在先后顺序的bootstrap高于application
+```yaml
+spring:
+  profiles:
+    active: dev
+
+```
+4. 相应业务类添加@RefreshScope
+5. 在nacos服务端添加配置文件 dataID 按照上述规则添加即可file-extension 为yaml
+
+###### nacos服务端
+ ![](doc/image/图片23.png)
+ ![](doc/image/图片24.png)
+ ![](doc/image/图片25.png)
+ Namespace+Group+Data ID三者关系？为什么这么设计
+ ![](doc/image/图片26.png)
+ ![](doc/image/图片27.png)
+ 
+ #### 18.5 Nacos集群和持久化配置
+ ![](doc/image/图片28.png)
+    真实情况如下
+ ![](doc/image/图片29.png)
+ 
+ #### 持久化和集群搭建
+ 1. 找到安装包下的sql脚本执行到数据库
+ 2. nacos-server-1.1.4\nacos\conf目录下找到application.properties
+ 3. 添加
+```properties
+    spring.datasource.platform=mysql
+    db.num=1
+    db.url.0=jdbc:mysql://11.162.196.16:3306/nacos_devtest?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true
+    db.user=nacos_devtest
+    db.password=youdontknow
+
+```
+4. 集群搭建
+梳理出3台nacos机器的不同服务端口号
+ ![](doc/image/图片30.png)
+ ![](doc/image/图片31.png)
+ ![](doc/image/图片32.png)
+ 
+5. 编辑Nacos的启动脚本startup.sh，使它能够接受不同的启动端
+/mynacos/nacos/bin目录下有startup.sh
+ ![](doc/image/图片33.png)
+ ![](doc/image/图片34.png)
+ ![](doc/image/图片35.png)
+ ![](doc/image/图片36.png)
+ ![](doc/image/图片37.png)
+ 6. Nginx的配置，由它作为负载均衡器
+ Nginx的配置，由它作为负载均衡器
+ 
+```upstream cluster{                                                        
+    
+       server 127.0.0.1:3333;
+       server 127.0.0.1:4444;
+       server 127.0.0.1:5555;
+   }	 server{
+                             
+       listen 1111;
+       server_name localhost;
+       location /{
+            proxy_pass http://cluster;
+                                                           
+       }
+   ....省略  
+``` 
+ ![](doc/image/图片38.png)
+
+### Sentinel
+ ![](doc/image/图片39.png)
+ 
+#### 使用
+ 1. 下载https://github.com/alibaba/Sentinel/releases
+ 2. 启动jar 访问http://127.0.0.1:8080/ 即可看到sentinel控制台
+ 3. 修改配置文件
+    ``` properties
+        server:
+          port: 8401
+        
+        spring:
+          application:
+            name: cloudalibaba-sentinel-service
+          cloud:
+            nacos:
+              discovery:
+                server-addr: localhost:8848
+            sentinel:
+              transport:
+                dashboard: localhost:8080
+                port: 8719  #默认8719，假如被占用了会自动从8719开始依次+1扫描。直至找到未被占用的端口
+        
+        management:
+          endpoints:
+            web:
+              exposure:
+                include: '*'
+    ```
+    4. 访问接口即可在控制台看到监控
+     ![](doc/image/图片40.png)
+     
+ #### 流控规则
+   ![](doc/image/图片41.png)
+   ![](doc/image/图片42.png)
+   ![](doc/image/图片43.png)
+#### 流控模式
+##### 直连（默认）
+   ![](doc/image/图片44.png)
+快速点击访问http://localhost:8401/testA
+结果 Blocked by Sentinel (flow limiting)
+
+##### 关联
+> 当关联的资源达到阈值时，就限流自己
+  当与A关联的资源B达到阈值后，就限流自己
+  B惹事，A挂了
+   ![](doc/image/图片45.png)
+
+##### 流控效果
+
+**直接**->快速失败（默认的流控处理)
+
+直接失败，抛出异常
+ Blocked by Sentinel (flow limiting)
+ 
+ **预热**
+ 公式：阈值除以coldFactor（默认值为3），经过预热时长后才会达到阈值
+   ![](doc/image/图片46.png)
+   ![](doc/image/图片47.png)
+默认coldFactor为3，即请求QPS从threshold/3开始，经预热时长逐渐升至设定的QPS阈值。
+限流 冷启动
+
+**Warmup配置**
+   ![](doc/image/图片48.png)
+   
+**排队等待**
+   ![](doc/image/图片49.png)
+   ![](doc/image/图片50.png)
+   
+#### 降级规则
+
+
+
