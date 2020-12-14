@@ -781,6 +781,77 @@ spring:
    ![](doc/image/图片50.png)
    
 #### 降级规则
+   ![](doc/image/图片51.png)
+   ![](doc/image/图片52.png)
+   ![](doc/image/图片53.png)
 
 
+> Sentinel的断路器是没有半开状态的
+   半开的状态系统自动去检测是否请求有异常，没有异常就关闭断路器恢复使用，有异常则继续打开断路器不可用。具体可以参考Hystrix
 
+##### RT 
+   ![](doc/image/图片54.png)
+   ![](doc/image/图片55.png)
+##### 异常比例
+   ![](doc/image/图片56.png)
+   ![](doc/image/图片57.png)
+   
+##### 异常数
+   ![](doc/image/图片58.png)
+   ![](doc/image/图片59.png)
+
+#### 热点key限流
+   ![](doc/image/图片60.png)
+#### @SentinelResource
+```java
+@GetMapping("/testHotKey")
+@SentinelResource(value = "testHotKey",blockHandler = "deal_testHotKey")
+public String testHotKey(@RequestParam(value = "p1",required = false) String p1,
+                         @RequestParam(value = "p2",required = false) String p2) {
+    //int age = 10/0;
+    return "------testHotKey";
+}
+ 
+//兜底方法
+public String deal_testHotKey (String p1, String p2, BlockException exception){
+    return "------deal_testHotKey,o(╥﹏╥)o";  
+}
+```
+###### 配置
+  ![](doc/image/图片61.png)
+  
+1
+@SentinelResource(value = "testHotKey")
+异常打到了前台用户界面看不到，不友好
+2
+@SentinelResource(value = "testHotKey",blockHandler = "deal_testHotKey")
+方法testHostKey里面第一个参数只要QPS超过每秒1次，马上降级处理
+用了我们自己定义的
+
+###### 测试
+第一个参数p1,当QPS超过1秒1次点击后马上被限流
+http://localhost:8401/testHotKey?p1=abc
+返回 ------deal_testHotKey,o(╥﹏╥)o
+http://localhost:8401/testHotKey?p1=abc&p2=33
+返回 ------deal_testHotKey,o(╥﹏╥)o
+http://localhost:8401/testHotKey?p2=abc
+返回 --------testHotKey
+
+####### 参数例外项
+我们期望p1参数当它是某个特殊值时，它的限流值和平时不一样
+假如当p1的值等于5时，它的阈值可以达到200
+  ![](doc/image/图片62.png)
+  
+ ####### 测试
+    http://localhost:8401/testHotKey?p1=5
+    http://localhost:8401/testHotKey?p1=3
+  当p1等于5的时候，阈值变为200
+  当p1不等于5的时候，阈值就是平常的1
+  前提条件
+  热点参数的注意点，参数必须是基本类型或者String
+  ![](doc/image/图片63.png)
+
+##### 系统规则
+  ![](doc/image/图片64.png)
+
+#### @SentinelResource

@@ -25,4 +25,5 @@ public class OrderFeignController {
     public String paymentTimeOut() {
         return paymentFeignService.timeOut();
     }
+
 }
