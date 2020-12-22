@@ -855,3 +855,148 @@ http://localhost:8401/testHotKey?p2=abc
   ![](doc/image/图片64.png)
 
 #### @SentinelResource
+
+##### 客户自定义限流处理逻辑
+一般限流 如：
+```java
+    //使用默认限流规则
+    @GetMapping("/rateLimit/byUrl")
+    @SentinelResource(value = "byUrl")
+    public CommonResult byUrl()
+    {
+        return new CommonResult(200,"按url限流测试OK",new Payment(2020L,"serial002"));
+    }
+
+
+
+    //使用方法限流
+    @GetMapping("/byResource")
+    @SentinelResource(value = "byResource", blockHandler = "handleException")
+    public CommonResult byResource() {
+        return new CommonResult(200, "按资源名称限流测试OK", new Payment(2020L, "serial001"));
+    }
+
+```
+***这么做面临的问题***
+  ![](doc/image/图片65.png)
+###### 自定义类
+  ```java
+public class CustomerBlockHandler {
+
+    public static CommonResult handleException(BlockException exception) {
+        return new CommonResult(2020, "自定义限流处理信息....CustomerBlockHandler");
+
+    }
+}
+
+```
+使用
+```java
+  @GetMapping("/rateLimit/customerBlockHandler")
+    @SentinelResource(value = "customerBlockHandler",
+            blockHandlerClass = CustomerBlockHandler.class,
+            blockHandler = "handlerException2")
+    public CommonResult customerBlockHandler()
+    {
+        return new CommonResult(200,"按客戶自定义",new Payment(2020L,"serial003"));
+    }
+
+```
+
+##### 更多注解属性
+  
+  ![](doc/image/图片66.png)
+  ![](doc/image/图片67.png)
+  ![](doc/image/图片68.png)
+
+
+##### 熔断框架比较
+  ![](doc/image/图片69.png)
+  
+#### 规则持久化
+修改cloudalibaba-sentinel-service8401
+
+POM
+```xml
+<dependency>
+    <groupId>com.alibaba.csp</groupId>
+    <artifactId>sentinel-datasource-nacos</artifactId>
+</dependency>
+```
+YML
+```yaml
+server:
+  port: 8401
+
+spring:
+  application:
+    name: cloudalibaba-sentinel-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848 #Nacos服务注册中心地址
+    sentinel:
+      transport:
+        dashboard: localhost:8080 #配置Sentinel dashboard地址
+        port: 8719
+      datasource:
+        ds1:
+          nacos:
+            server-addr: localhost:8848
+            dataId: cloudalibaba-sentinel-service
+            groupId: DEFAULT_GROUP
+            data-type: json
+            rule-type: flow
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+feign:
+  sentinel:
+    enabled: true # 激活Sentinel对Feign的支持
+
+```
+##### 添加Nacos数据源配置
+```properties
+spring:
+   cloud:
+    sentinel:
+    datasource:
+     ds1:
+      nacos:
+        server-addr:localhost:8848
+        dataid:${spring.application.name}
+        groupid:DEFAULT_GROUP
+        data-type:json
+            rule-type:flow
+
+```
+##### 添加Nacos业务规则配置
+  ![](doc/image/图片70.png)
+  ![](doc/image/图片71.png)
+##### 内容解析
+[
+    {
+         "resource": "/retaLimit/byUrl",
+         "limitApp": "default",
+         "grade":   1,
+         "count":   1,
+         "strategy": 0,
+         "controlBehavior": 0,
+         "clusterMode": false    
+    }
+]
+  ![](doc/image/图片72.png)
+
+启动8401后刷新sentinel发现业务规则有了
+
+快速访问测试接口
+http://localhost:8401/rateLimit/byUrl
+停止8401再看sentinel 规则消息了
+重新启动8401再看sentinel 规则也没有了 
+多次调用
+http://localhost:8401/rateLimit/byUrl
+配置出现了，持久化验证通过
