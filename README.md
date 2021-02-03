@@ -1000,3 +1000,23 @@ http://localhost:8401/rateLimit/byUrl
 多次调用
 http://localhost:8401/rateLimit/byUrl
 配置出现了，持久化验证通过
+
+## 分布式事物
+
+> 一次业务操作需要跨多个数据源或需要跨多个系统进行远程调用，就会产生分布式事务问题
+
+*分布式之后*
+ ![](doc/image/1610032623(1).png)
+ ### seta
+ > Seata是一款开源的分布式事务解决方案，致力于在微服务架构下提供高性能和简单易用的分布式事务服务
+
+官网地址 http://seata.io/zh-cn/
+
+### 分布式事务处理过程的-ID+三组件模型
+#### Transaction ID XID 
+    全局唯一的事务ID
+#### Transaction Coordinator(TC)
+    事务协调器，维护全局事务的运行状态，负责协调并驱动全局事务的提交或回滚;
+#### Resource Manager(RM) 
+     	控制分支事务，负责分支注册，状态汇报，并接收事务协调器的指令，驱动分支（本地）事务的提交和回滚； 
+
